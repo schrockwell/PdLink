@@ -14,7 +14,8 @@ $(error SDK path not found; set ENV value PLAYDATE_SDK_PATH)
 endif
 
 # List C source files here
-SRC = src/main.c
+SRC = src/main.c \
+	src/fft.c
 
 # List all user directories here
 UINCDIR = 
@@ -23,7 +24,7 @@ UINCDIR =
 UASRC = 
 
 # List all user C define here, like -D_DEBUG=1
-UDEFS = 
+UDEFS =
 
 # Define ASM defines here
 UADEFS = 
@@ -32,7 +33,7 @@ UADEFS =
 ULIBDIR =
 
 # List all user libraries here
-ULIBS =
+ULIBS = 
 
 include $(SDK)/C_API/buildsupport/common.mk
 
