@@ -4,16 +4,13 @@
 #include <stdlib.h>
 
 #include "pd_api.h"
+
+#include "constants.h"
+#include "main.h"
 #include "goertzel.h"
+#include "tx.h"
 
-#define NUM_SAMPLES  64
-#define SPACE_FREQ   5000.0f
-#define MARK_FREQ    10000.0f
-#define SAMPLE_RATE  44100.0f
-
-static PlaydateAPI* pd = NULL;
-static int say_hello(lua_State* L);
-static int do_goertzel(lua_State* L);
+PlaydateAPI* pd;
 
 #ifdef _WINDLL
 __declspec(dllexport)
@@ -25,12 +22,23 @@ eventHandler(PlaydateAPI* playdate, PDSystemEvent event, uint32_t arg)
 	{
 		pd = playdate;
 		
+		txInit();
+		
 		const char* err;
 
 		if ( !pd->lua->addFunction(say_hello, "pd_link.say_hello", &err) )
 			pd->system->logToConsole("%s:%i: addFunction failed, %s", __FILE__, __LINE__, err);
 			
 		if ( !pd->lua->addFunction(do_goertzel, "pd_link.do_goertzel", &err) )
+			pd->system->logToConsole("%s:%i: addFunction failed, %s", __FILE__, __LINE__, err);
+			
+		if ( !pd->lua->addFunction(tx_start, "pd_link.tx_start", &err) )
+			pd->system->logToConsole("%s:%i: addFunction failed, %s", __FILE__, __LINE__, err);
+			
+		if ( !pd->lua->addFunction(tx_end, "pd_link.tx_end", &err) )
+			pd->system->logToConsole("%s:%i: addFunction failed, %s", __FILE__, __LINE__, err);
+			
+		if ( !pd->lua->addFunction(tx_enqueue, "pd_link.tx_enqueue", &err) )
 			pd->system->logToConsole("%s:%i: addFunction failed, %s", __FILE__, __LINE__, err);
 	}
 	
@@ -44,11 +52,11 @@ static int say_hello(lua_State* L)
 }
 
 static int do_goertzel(lua_State* L) {
-	// Generate samples for an example sine wave at MARK_FREQ
+	// This just runs the Goertzel detection for a simulated sine wave at the mark frequency
+	float data[NUM_SAMPLES];
 	float frequency = MARK_FREQ;
 	float samplePeriod = 1.0f / SAMPLE_RATE;
 	float angularFrequency = 2.0f * (float)M_PI * frequency;
-	float data[NUM_SAMPLES];
 	for (int i = 0; i < NUM_SAMPLES; ++i) {
 		float time = i * samplePeriod; // the time at which the sample is taken
 		data[i] = sinf(angularFrequency * time); // the sample itself
@@ -60,5 +68,28 @@ static int do_goertzel(lua_State* L) {
 	return 1;
 }
 
+
+static int tx_init(lua_State* L) {
+	txInit();
+	return 0;
+}
+
+static int tx_start(lua_State* L) {
+	txStart();
+	return 0;
+}
+
+static int tx_end(lua_State* L) {
+	txEnd();
+	return 0;
+}
+
+static int tx_enqueue(lua_State* L) {
+	char byte = (char)(pd->lua->getArgInt(1));
+	
+	txEnqueue(byte);
+	
+	return 0;
+};
 
 

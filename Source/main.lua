@@ -33,3 +33,10 @@ local myInputHandlers = {
 	end,
 }
 playdate.inputHandlers.push(myInputHandlers)
+
+-- Enqueue bytes 0 through 255 for fun and profit
+pd_link.tx_start()
+for i = 0, 0xFF do
+	pd_link.tx_enqueue(i)
+end
+	
