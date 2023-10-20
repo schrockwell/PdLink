@@ -1,0 +1,8 @@
+# Build artifacts
+build/
+*.pdx
+*.dylib
+*.elf
+
+# Annoying system files
+.DS_Store
