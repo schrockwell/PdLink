@@ -6,7 +6,7 @@ local prevDuration
 
 function doFFT()
 	playdate.resetElapsedTime()
-	result = pd_link.do_fft()
+	result = pd_link.do_goertzel()
 	duration = playdate.getElapsedTime()
 	
 	print("result: 0x" .. string.format("%x", result))

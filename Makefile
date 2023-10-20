@@ -15,7 +15,7 @@ endif
 
 # List C source files here
 SRC = src/main.c \
-	src/fft.c
+	src/goertzel.c
 
 # List all user directories here
 UINCDIR = 
