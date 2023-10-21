@@ -11,5 +11,6 @@ extern PlaydateAPI* pd;
 
 // 44,100 / 40 = 1102.5 baud
 #define SYMBOL_SAMPLE_COUNT 40
+#define START_BITS 1
 
 #endif
