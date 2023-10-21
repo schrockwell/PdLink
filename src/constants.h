@@ -1,9 +1,13 @@
 #ifndef _constants_h_
 #define _constants_h_
 
+#include "pd_api.h"
+
 extern PlaydateAPI* pd;
 
-#define NUM_SAMPLES   64
+#define FALSE         0
+#define TRUE          1
+
 #define SPACE_FREQ    5000.0f
 #define MARK_FREQ     10000.0f
 #define SAMPLE_RATE   44100.0f

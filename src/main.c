@@ -9,6 +9,7 @@
 #include "main.h"
 #include "goertzel.h"
 #include "tx.h"
+#include "rx.h"
 
 PlaydateAPI* pd;
 
@@ -23,6 +24,7 @@ eventHandler(PlaydateAPI* playdate, PDSystemEvent event, uint32_t arg)
 		pd = playdate;
 		
 		txInit();
+		rxInit();
 		
 		const char* err;
 
@@ -53,16 +55,16 @@ static int say_hello(lua_State* L)
 
 static int do_goertzel(lua_State* L) {
 	// This just runs the Goertzel detection for a simulated sine wave at the mark frequency
-	float data[NUM_SAMPLES];
-	float frequency = MARK_FREQ;
+	int16_t data[SYMBOL_SAMPLE_COUNT];
+	float frequency = SPACE_FREQ;
 	float samplePeriod = 1.0f / SAMPLE_RATE;
 	float angularFrequency = 2.0f * (float)M_PI * frequency;
-	for (int i = 0; i < NUM_SAMPLES; ++i) {
+	for (int i = 0; i < SYMBOL_SAMPLE_COUNT; ++i) {
 		float time = i * samplePeriod; // the time at which the sample is taken
-		data[i] = sinf(angularFrequency * time); // the sample itself
+		data[i] = (int16_t)(sinf(angularFrequency * time) * (INT16_MAX - 1)); // the sample itself
 	}
 	
-	uint8_t result = goertzel_value(NUM_SAMPLES, SAMPLE_RATE, SPACE_FREQ, MARK_FREQ, data);
+	int result = goertzel_value(SYMBOL_SAMPLE_COUNT, SAMPLE_RATE, SPACE_FREQ, MARK_FREQ, data);
 
 	pd->lua->pushInt(result);
 	return 1;
