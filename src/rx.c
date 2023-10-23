@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "constants.h"
 #include "goertzel.h"
@@ -10,6 +11,10 @@ int rxBit = 0;
 char rxByte = 0;
 int16_t rxSamples[SYMBOL_SAMPLE_COUNT];
 
+int rollover = 0;
+int tempBitCounter = 0;
+int tempByteCounter = 0;
+
 void rxInit(void)
 {
 	pd->sound->setMicCallback(&rxMicCallback, NULL, 0);
@@ -17,41 +22,53 @@ void rxInit(void)
 
 int rxMicCallback(void* context, int16_t* data, int len)
 {	
-	int i = 0;
+	int i = rollover;
+	rollover = 0;
 	
-	if (!isSynced) {
-		// Skip ahead in small chunks looking for a bit to decode
-		int syncCheckCount = (SYMBOL_SAMPLE_COUNT / 4);
-		for (; i < (len - SYMBOL_SAMPLE_COUNT); i += syncCheckCount) {
-			int value = goertzel_value(SYMBOL_SAMPLE_COUNT, SAMPLE_RATE, SPACE_FREQ, MARK_FREQ, (data + i));
+	for (; i < len; i++) {
+		if (!isSynced) {
+			// Sliding window
+			for (int j = 0; j < SYMBOL_SAMPLE_COUNT - 1; j++) {
+				rxSamples[j] = rxSamples[j + 1];
+			}
+			rxSamples[SYMBOL_SAMPLE_COUNT - 1] = data[i];
 			
-			if (value != -1) {
-				// We found a bit!
+			int value = goertzel_value(SYMBOL_SAMPLE_COUNT, SAMPLE_RATE, SPACE_FREQ, MARK_FREQ, rxSamples);
+			
+			if (value == -1) {
+				continue;
+			} else {
+				// We found a bit! So add a fudge factor
+				// pd->system->logToConsole("Synced!");
+				// i = i + SYMBOL_SAMPLE_COUNT / 2;
+				
 				isSynced = TRUE;
 				rxSample = 0;
 				rxBit = 0;
 				rxByte = 0;
+				
+				// If we extended past the end of this RX buffer, then keep the rollover sample count
+				// and bail out early
+				if (i >= len) {
+					rollover = len - i;
+					return 1;
+				} else {
+					rollover = 0;
+				}
 			}
 		}
-	}
-	
-	if (isSynced) {
-		for (; i < len; i++) {
+		
+		// Now we are synced, so start decoding bits
+		if (isSynced) {
+			// TODO: This is not technically correct for the FIRST bit after syncing
 			rxSamples[rxSample] = data[i];
 			rxSample = (rxSample + 1) % SYMBOL_SAMPLE_COUNT;
-			
+		
 			if (rxSample == 0) {
 				// We filled the sample buffer for one bit
 				int value = goertzel_value(SYMBOL_SAMPLE_COUNT, SAMPLE_RATE, SPACE_FREQ, MARK_FREQ, rxSamples);
-				
-				// TEMP
-				// for (int j = 0; j < SYMBOL_SAMPLE_COUNT; j++) {
-				// 	pd->system->logToConsole("%d", rxSamples[j]);
-				// }
-				// return 0;
-				
 				if (value == -1) {
-					// oh nooooooo what to do?
+					// oh no :(
 					value = 0;
 				}
 				
@@ -60,14 +77,20 @@ int rxMicCallback(void* context, int16_t* data, int len)
 				rxBit = (rxBit + 1) % 8;
 				if (rxBit == 0) {
 					// We got a byte, baybeeee
-					pd->system->logToConsole("Got: %d", rxByte);
+					pd->system->logToConsole("Got: %d", (uint8_t)rxByte);
 					
 					// Reset the accumulator
 					rxByte = 0;
 					
-					// Skip the idle time
-					i = i + SYMBOL_SAMPLE_COUNT * START_BITS;
+					isSynced = FALSE;
+					for (int j = 0; j < SYMBOL_SAMPLE_COUNT; j++) {
+						rxSamples[j] = 0;
+					}
+	
+					tempByteCounter++;
 				}
+				
+				tempBitCounter++;
 			}
 		}
 	}

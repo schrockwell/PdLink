@@ -17,4 +17,9 @@ extern PlaydateAPI* pd;
 #define SYMBOL_SAMPLE_COUNT 40
 #define START_BITS 1
 
+// idk why min() isn't defined in stdlib.h...
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
 #endif

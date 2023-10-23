@@ -4,7 +4,7 @@ local duration = 0
 local result = 0
 local prevDuration
 
-function doFFT()
+function do_goertzel()
 	playdate.resetElapsedTime()
 	result = pd_link.do_goertzel()
 	duration = playdate.getElapsedTime()
@@ -29,14 +29,16 @@ end
 
 local myInputHandlers = {
 	AButtonDown = function()
-		doFFT()
+		-- Enqueue bytes 0 through 255 for fun and profit
+		for i = 0, 0xFF do
+			pd_link.tx_enqueue(i)
+		end
+	end,
+	BButtonDown = function()
+		do_goertzel()
 	end,
 }
 playdate.inputHandlers.push(myInputHandlers)
 
--- Enqueue bytes 0 through 255 for fun and profit
 pd_link.tx_start()
-for i = 0, 0xFF do
-	pd_link.tx_enqueue(i)
-end
 	
